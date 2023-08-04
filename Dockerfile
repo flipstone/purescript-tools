@@ -1,16 +1,15 @@
-FROM flipstone/stack:v5-2.7.3-arm64 AS builder
+FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y git curl
+ENV LANG="C.UTF-8" LANGUAGE="C.UTF-8" LC_ALL="C.UTF-8"
 
-ADD build-purs.sh /build-purs.sh
-RUN /build-purs.sh
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && \
+    apt-get install -y -qq --no-install-recommends \
+      ca-certificates curl lsb-release gnupg apt-transport-https git && \
+    apt-get clean
 
-ADD build-spago.sh /build-spago.sh
-RUN /build-spago.sh
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
 
-FROM arm64v8/debian:bullseye-20211220-slim
-
-COPY --from=builder /usr/local/bin/purs /usr/local/bin/purs
-COPY --from=builder /root/.local/bin/spago /usr/local/bin/spago 
-
-ENTRYPOINT /usr/local/bin/spago
+RUN npm install -g npm@latest
+RUN npm install -g purescript@0.15.10 purescript-psa spago grunt esbuild

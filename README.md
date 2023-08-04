@@ -1,27 +1,34 @@
-This repo is used to create a docker image containing arm64 binaries of `purs`
-(the purescript compiler) and `spago` (a build tool for purescript).
+# Purescript Tools
 
-The tag or branch you want to build must be set in their build scripts.
+This repository has a workflow defined that will build and push amd64 and arm64
+images to Github Container Registry.
 
-Note that spago's has its own version number separate from purs so if you're
-upgrading then you must manually verfiy the version of purs and spago you want
-and make sure they work together. Generally you probably want the latest
-released version of each.
+# How to build this using docker
 
-This repository is typically used for simply providing these binaries inside of
-a docker image that can be used inside a project-specific docker image which
-needs an arm64 version.
+* Use `./build-image.sh push-arch-tag` on your machine to build a local image
+  for testing. As you make changes locally the images will be tagged with
+  `-uncommitted` on the end rather than the commit SHA.
 
-Once the build scripts have the appropriate versions in them then you should be
-able to produce the needed docker image with `docker build .`
+* Update the base tag in `./build-image.sh` as necessary to reflect changes
+  in the base image or GHC version included in the image.
 
-After that you can tag it or push it to whereever you need.
-
-Typically that will be `flipstone/purescript-arm64:<purs version>`
-
-e.g.
+* On an AMD64 machine:
 
 ```
-docker build . -t flipstone/purescript-arm64:0.15.4
-docker push
+./build-image.sh build-arch-tag
+./build-image.sh push-arch-tag
 ```
+
+* On an ARM64 machine:
+
+```
+./build-image.sh build-arch-tag
+./build-image.sh push-arch-tag
+```
+
+* On either machine:
+
+```
+./build-image.sh push-manifest
+```
+
