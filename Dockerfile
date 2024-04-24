@@ -1,4 +1,4 @@
-FROM debian:stable-20230814-slim
+FROM debian:stable-20240423-slim
 
 ENV LANG="C.UTF-8" LANGUAGE="C.UTF-8" LC_ALL="C.UTF-8"
 
@@ -19,5 +19,5 @@ RUN apt-get update && \
 
 RUN mkdir -p ~/.ssh/ && ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
 
-RUN npm install -g npm@10.2.3
-RUN npm install -g spago@next purescript@0.15.12 purescript-psa@0.8.2 grunt-cli@1.4.3 esbuild@0.19.5
+RUN npm install -g npm@10.5.2
+RUN npm install -g spago@next purescript@0.15.15 purescript-psa@0.8.2 grunt-cli@1.4.3 esbuild@0.20.2
