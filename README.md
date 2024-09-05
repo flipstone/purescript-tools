@@ -5,9 +5,5 @@ images to Github Container Registry.
 
 # How to build and test locally
 
-* Use `./build-image.sh build-local` on your machine to build a local image
-  for testing. As you make changes locally the images will be tagged with
-  `-uncommitted` on the end rather than the commit SHA.
-
-* Update the base tag in `./build-image.sh` as necessary to reflect changes
-  in the base image or GHC version included in the image.
+* Run `docker build -t purescript-tools:beta .` to create a local image with the tag of beta
+* Use `'purescript-tools:beta` in an app that uses purescript-tools to try it out.
