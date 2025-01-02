@@ -20,4 +20,4 @@ RUN apt-get update && \
 RUN mkdir -p ~/.ssh/ && ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
 
 RUN npm install -g npm@11.0.0
-RUN npm install -g spago@0.93.41 purescript@0.15.15 purescript-psa@0.9.0 grunt-cli@1.5.0 esbuild@0.24.0 purs-tidy@0.11.0
+RUN npm install -g spago@0.93.41 purescript@0.15.15 purescript-psa@0.9.0 grunt-cli@1.5.0 esbuild@0.24.2 purs-tidy@0.11.0
