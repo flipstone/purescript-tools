@@ -1,0 +1,106 @@
+# Keep the base image, the toolchain, the tooling images and the GitHub
+# Actions up to date.
+#
+# CI note: workflows triggered by Dependabot's branch pushes receive only
+# *Dependabot* secrets -- GitHub Actions secrets are unavailable to them, even
+# organization-wide ones. build.yml needs DOCKERHUB_USERNAME and DOCKERHUB_TOKEN
+# as Dependabot secrets, or every Dependabot PR fails at the Docker Hub and
+# dhi.io login steps before any of the coverage below runs. The same two
+# secrets let Dependabot itself authenticate to dhi.io (the `dhi` registry
+# below) to look for base image updates.
+# https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-on-actions
+#
+# This repo publishes the ghcr.io/flipstone/purescript-tools image that the
+# PureScript projects across the workspace build inside, so everything here
+# is a dependency several repos inherit without listing.
+#
+# Coverage: build.yml builds the image (without pushing) on Dependabot
+# branches, so every bump below is exercised rather than merely parsed.
+#
+# The toolchain -- npm itself, spago, purescript, purescript-psa, grunt-cli,
+# esbuild, purs-tidy -- is declared in package.json with a committed lockfile
+# precisely so the npm entry below can track it; nothing is pinned inside a
+# Dockerfile RUN line. package.json is the only place a version is written:
+# scripts/build-image.sh reads the purescript version from it for the image
+# tag and the Dockerfile asserts the installed compiler matches. A purescript
+# bump therefore also changes the published tag prefix
+# (debian-purescript-X.Y.Z-...), which downstream repos then repin by hand,
+# exactly as a GHC bump is handled for haskell-tools.
+#
+# Cooldown: every entry below waits before opening a PR, so a version has to
+# survive in the wild first. Majors are deliberately the *shortest* wait -- they
+# are read and tested by a person anyway, whereas a patch or minor is the kind
+# of bump that gets merged on sight, so it earns the longer soak.
+version: 2
+registries:
+  # The base image registry (Docker Hardened Images) requires auth even for
+  # the free Community tier; Docker Hub credentials work. These reference
+  # Dependabot secrets, which are configured separately from Actions secrets.
+  dhi:
+    type: docker-registry
+    url: dhi.io
+    username: ${{secrets.DOCKERHUB_USERNAME}}
+    password: ${{secrets.DOCKERHUB_TOKEN}}
+updates:
+  # One PR for all action bumps rather than one PR per action.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+      semver-patch-days: 14
+      semver-minor-days: 14
+      semver-major-days: 7
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # The published image's base: the DHI node image, pinned to an exact node
+  # version plus digest, so both bump together. No ignore rules -- the
+  # toolchain installs on any current node, so a node major is an ordinary
+  # PR that waits its cooldown like any other.
+  - package-ecosystem: "docker"
+    directory: "/"
+    registries:
+      - dhi
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+      semver-patch-days: 14
+      semver-minor-days: 14
+      semver-major-days: 7
+
+  # The pinned tooling images (trivy, hadolint) in compose.yaml.
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+      semver-patch-days: 14
+      semver-minor-days: 14
+      semver-major-days: 7
+
+  # npm itself and the PureScript toolchain, from package.json. `increase`
+  # keeps the exact pins exact, which the image tag derivation relies on.
+  # Minor and patch bumps arrive as one grouped PR; a major arrives alone.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    versioning-strategy: increase
+    cooldown:
+      default-days: 7
+      semver-patch-days: 14
+      semver-minor-days: 14
+      semver-major-days: 7
+    groups:
+      toolchain:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"

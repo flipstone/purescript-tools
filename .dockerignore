@@ -1,0 +1,11 @@
+README.md
+LICENSE
+scripts/
+compose.yaml
+trivy-reports/
+node_modules/
+.env
+.gitignore
+.hadolint.yaml
+**/.git
+**/.github

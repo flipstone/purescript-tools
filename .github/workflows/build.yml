@@ -3,16 +3,48 @@ name: Build and Push Purescript-Tools image
 on:
   push:
 
+# packages:write is needed to push images to ghcr on regular runs.
+# Dependabot-triggered runs only build (no pushes) and get a read-only
+# GITHUB_TOKEN regardless of what is declared here unless permissions are
+# explicit. (Dependabot runs read the DOCKERHUB_* secrets from the separate
+# Dependabot secrets store -- see README.md.)
+permissions:
+  contents: read
+  packages: write
+
 defaults:
   run:
     shell: bash
 
 jobs:
+  lint:
+    name: Lint Dockerfile
+    runs-on:
+      group: ci-lite
+      labels: [self-hosted, ci-lite]
+
+    steps:
+      # Authenticated pulls from Docker Hub (the hadolint image) avoid the
+      # anonymous rate limits.
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Hadolint
+        run: docker compose run --rm hadolint hadolint Dockerfile
+
   build:
     name: Build and push purescript-tools
+    needs: [lint]
     runs-on:
       group: builder
       labels: [self-hosted, x64, builder]
+
     steps:
       - name: Login to Docker Hub
         uses: docker/login-action@v4
@@ -20,32 +52,92 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Log in to the Container registry
+      # The base image comes from Docker Hardened Images, which requires
+      # authentication even for the free Community tier. Docker Hub
+      # credentials work for dhi.io.
+      - name: Login to Docker Hardened Images registry
+        uses: docker/login-action@v4
+        with:
+          registry: dhi.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to the GitHub Container registry
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Full history so the release-tag step can diff against the
+      # before-sha of the push; the repo is small enough for this to be
+      # cheap.
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: |
-            ghcr.io/flipstone/purescript-tools
-          tags: |
-            type=sha,format=short,prefix=debian-stable-purescript-0.15.15-{{ date 'YYYY-MM-DD' }}-
-            type=raw,value=latest,enable={{is_default_branch}}
+      - name: Build and push image
+        if: ${{ github.actor != 'dependabot[bot]' }}
+        run: |
+          ./scripts/build-image.sh build-and-push-sha-tag
 
-      - name: Build, tag, and push image to GCR
-        uses: docker/build-push-action@v7
+      # Dependabot bumps should verify that the image still builds without
+      # publishing anything.
+      - name: Build image without pushing (Dependabot)
+        if: ${{ github.actor == 'dependabot[bot]' }}
+        run: |
+          ./scripts/build-image.sh build-sha-tag
+
+      # Report-only scan of the amd64 image just pushed, using the same
+      # compose trivy service developers run locally. Runs before the
+      # release step so that setting TRIVY_EXIT_CODE to '1' here would stop
+      # a vulnerable image from being released.
+      - name: Scan image with Trivy
+        if: ${{ github.actor != 'dependabot[bot]' }}
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./scripts/build-image.sh scan-sha-tag
+
+      # Surface the scan results on the run page and as a downloadable
+      # artifact, even when the scan step itself fails.
+      - name: Add Trivy results to the job summary
+        if: ${{ always() && github.actor != 'dependabot[bot]' }}
+        run: |
+          shopt -s nullglob
+          for report in trivy-reports/*.txt; do
+            {
+              echo "## Trivy scan: $(basename "$report" .txt)"
+              echo '```'
+              cat "$report"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Upload Trivy reports
+        if: ${{ always() && github.actor != 'dependabot[bot]' }}
+        uses: actions/upload-artifact@v7
         with:
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=gha,mode=max,ignore-error=true
-          cache-to: type=gha,mode=max,ignore-error=true
-          platforms: 'linux/amd64, linux/arm64'
-          provenance: false
+          name: trivy-reports
+          path: trivy-reports/
+
+      # A release tag is what downstream Dependabot configs watch. Mint one
+      # only for main builds that changed the image or how it is built, so
+      # docs/CI-only merges don't open no-op bump PRs in every downstream
+      # repo. An unknown before-sha (force push, newly created branch) errs
+      # on the side of releasing.
+      - name: Publish release tag
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: |
+          before='${{ github.event.before }}'
+          if git cat-file -e "$before" 2>/dev/null &&
+             ! git diff --name-only "$before" HEAD | grep -qE '^(Dockerfile|package\.json|package-lock\.json|\.npmrc|scripts/build-image\.sh)$'; then
+            echo "No image-affecting changes since $before; skipping release tag"
+          else
+            ./scripts/build-image.sh push-release-tag
+          fi
