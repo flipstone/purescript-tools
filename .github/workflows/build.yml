@@ -33,7 +33,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Hadolint
         run: docker compose run --rm hadolint hadolint Dockerfile
@@ -73,7 +73,7 @@ jobs:
       # before-sha of the push; the repo is small enough for this to be
       # cheap.
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
