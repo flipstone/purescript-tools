@@ -54,6 +54,20 @@ uses only to unpack the compiler at install time). Overrides are not bumped
 by Dependabot, so revisit the block when a Trivy scan stops listing the
 package it works around, or when the tool that needed it is upgraded.
 
+`package.json` also carries an `allowScripts` block. npm 12 blocks dependency
+install scripts unless the package is listed there, and the compiler itself
+arrives through one: the `purescript` package's postinstall downloads the
+`purs` binary. The other approved entries are esbuild's binary check and ssh2's
+optional native binding (a spago dependency), both harmless; `cpu-features`
+(ssh2's optional C addon) is explicitly denied, since the image has no
+compiler for it and ssh2 falls back to JavaScript without it. The image's own
+`npm ci` currently runs under the npm bundled with the node base image, which
+does not yet block scripts; the list is there so that a node bump bundling
+npm 12 does not stop the compiler download. If a build log ever reports
+blocked install scripts after a toolchain bump, review them with
+`npm install-scripts ls` and approve by name with
+`npm install-scripts approve --no-allow-scripts-pin <pkg>`.
+
 The PureScript version is also embedded in every image tag.
 `scripts/build-image.sh` reads it from `package.json` and passes it to the
 build, where the Dockerfile refuses to build if `purs --version` disagrees, so

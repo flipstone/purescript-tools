@@ -13,5 +13,11 @@
   },
   "overrides": {
     "tar": "^7.5.22"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "purescript": true,
+    "ssh2": true,
+    "cpu-features": false
   }
 }
