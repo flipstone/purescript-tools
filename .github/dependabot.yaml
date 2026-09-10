@@ -28,9 +28,11 @@
 # exactly as a GHC bump is handled for haskell-tools.
 #
 # Cooldown: every entry below waits before opening a PR, so a version has to
-# survive in the wild first. Majors are deliberately the *shortest* wait -- they
-# are read and tested by a person anyway, whereas a patch or minor is the kind
-# of bump that gets merged on sight, so it earns the longer soak.
+# survive in the wild first. Where the ecosystem understands semver (npm),
+# majors are deliberately the *shortest* wait -- they are read and tested by a
+# person anyway, whereas a patch or minor is the kind of bump that gets merged
+# on sight, so it earns the longer soak. github-actions, docker and
+# docker-compose accept only default-days, so those entries wait a flat week.
 version: 2
 registries:
   # The base image registry (Docker Hardened Images) requires auth even for
@@ -49,9 +51,6 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
-      semver-patch-days: 14
-      semver-minor-days: 14
-      semver-major-days: 7
     groups:
       github-actions:
         patterns:
@@ -69,9 +68,6 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
-      semver-patch-days: 14
-      semver-minor-days: 14
-      semver-major-days: 7
 
   # The pinned tooling images (trivy, hadolint) in compose.yaml.
   - package-ecosystem: "docker-compose"
@@ -80,9 +76,6 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
-      semver-patch-days: 14
-      semver-minor-days: 14
-      semver-major-days: 7
 
   # npm itself and the PureScript toolchain, from package.json. `increase`
   # keeps the exact pins exact, which the image tag derivation relies on.
