@@ -36,13 +36,13 @@
 version: 2
 # The docker and docker-compose entries below join one multi-ecosystem group,
 # so every image bump across the Dockerfiles and compose files arrives as a
-# single weekly PR instead of one per image per directory. The group owns the
+# single quarterly PR instead of one per image per directory. The group owns the
 # schedule; each entry keeps its own registries and cooldown, and
 # `patterns: ["*"]` (required in a group) takes every image.
 multi-ecosystem-groups:
   images:
     schedule:
-      interval: "weekly"
+      interval: "quarterly"
 registries:
   # The base image registry (Docker Hardened Images) requires auth even for
   # the free Community tier; Docker Hub credentials work. These reference
@@ -57,7 +57,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "quarterly"
     cooldown:
       default-days: 7
     groups:
@@ -94,7 +94,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "quarterly"
     versioning-strategy: increase
     cooldown:
       default-days: 7
