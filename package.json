@@ -5,11 +5,11 @@
   "dependencies": {
     "esbuild": "0.28.2",
     "grunt-cli": "1.5.0",
-    "npm": "12.0.2",
+    "npm": "12.2.1",
     "purescript": "0.15.16",
     "purescript-psa": "0.9.0",
     "purs-tidy": "0.11.1",
-    "spago": "1.0.4"
+    "spago": "1.0.5"
   },
   "overrides": {
     "tar": "^7.5.22"

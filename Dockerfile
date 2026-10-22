@@ -1,7 +1,7 @@
 # Docker Hardened Images node (Community tier). Pinned to an exact node
 # version plus digest; Dependabot bumps both together. Pulling requires
 # `docker login dhi.io` (Docker Hub credentials).
-FROM dhi.io/node:26.10.0-debian13-dev@sha256:4b7d8ec141f0def02547a3f05fdc7ee4b315b1257ff939f4794ae5d215d224ee
+FROM dhi.io/node:26.12.1-debian13-dev@sha256:4341efa8e46f1c66baea099bba06481342d722d36f6d785a1363ef6cf11e931c
 
 LABEL org.opencontainers.image.source="https://github.com/flipstone/purescript-tools"
 
